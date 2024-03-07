@@ -26,19 +26,20 @@ type List struct {
 }
 
 func ListSize(l *List) int {
+	count := 0
+	for l.Head != nil {
+		count++
+		l.Head = l.Head.Next
+	}
 	return count
 }
-
-var count int
 
 func ListPushFront(l *List, data interface{}) {
 	n := &NodeL{Data: data}
 	if l.Head == nil {
 		l.Head = n
-		count++
 	} else {
 		n.Next = l.Head
 		l.Head = n
-		count++
 	}
 }

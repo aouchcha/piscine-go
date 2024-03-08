@@ -2,29 +2,30 @@ package main
 
 import "fmt"
 
+func main() {
+	PrintMemory([10]byte{'h', 'e', 'l', 'l', 'o', 16, 21, '*'})
+}
+
 func PrintMemory(arr [10]byte) {
-	hix := "0123456789abcdef"
+	base := "0123456789abcdef"
+	l := len(base)
 	for i := 0; i < len(arr); i++ {
-		d := int(arr[i]) / 16
-		m := int(arr[i]) % 16
-		fmt.Print(string(rune(hix[d])))
-		fmt.Print(string(rune(hix[m])))
+		mod := int(arr[i]) % l
+		div := int(arr[i]) / l
+		fmt.Print(string(rune(base[div])))
+		fmt.Print(string(rune(base[mod])))
 		if i != 3 && i != 7 && i != 9 {
 			fmt.Print(" ")
 		} else {
 			fmt.Println()
 		}
 	}
-	for _, v := range arr {
-		if v >= 32 && v <= 126 {
-			fmt.Print(string(v))
-		} else {
+
+	for _, char := range arr {
+		if char < 32 || char > 126 {
 			fmt.Print(".")
+		} else {
+			fmt.Print(string(char))
 		}
 	}
-	fmt.Println()
-}
-
-func main() {
-	PrintMemory([10]byte{'h', 'e', 'l', 'l', 'o', 16, 21, '*'})
 }

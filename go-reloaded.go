@@ -10,22 +10,8 @@ import (
 func main() {
 	args := os.Args[1:]
 	var sli []string
-	word := ""
-	for _, str := range args {
-		for _, char := range str {
-			if char != ' ' {
-				word = word + string(char)
-			} else {
-				sli = append(sli, word)
-				word = ""
-			}
-		}
-		if word != "" {
-			sli = append(sli, word)
-			word = ""
-		}
-	}
-	cc := ""
+	var final_product []string
+	sli = SplitWhiteSpaces(args)
 	for i := 1; i < len(sli); i++ {
 		if sli[i] == "(hex)" {
 			new := ConvertBase(sli[i-1], 16)
@@ -43,39 +29,75 @@ func main() {
 			new := Capitalize(sli[i-1])
 			sli[i-1] = new
 		} else if sli[i] == "(up," {
-			cc = sli[i+1]
+
 			new := sli[i+1]
 			num := TrimAtoi(new)
 			sli = ToUpperNum(sli, num)
+		} else if sli[i] == "(low," {
+
+			new := sli[i+1]
+			num := TrimAtoi(new)
+			sli = ToLowrNum(sli, num)
+		} else if sli[i] == "(cap," {
+			new := sli[i+1]
+			num := TrimAtoi(new)
+			sli = CapNum(sli, num)
 		}
 	}
-	fmt.Println("cc is", cc)
 	count := 0
 	for i := 1; i < len(sli); i++ {
-		if sli[i] == "(hex)" || sli[i] == "(bin)" || sli[i] == "(low)" || sli[i] == "(up)" || sli[i] == "(cap)" || sli[i] == "(low, " || sli[i] == "(up, " || sli[i] == "(cap, " {
+		if sli[i] == "(hex)" || sli[i] == "(bin)" || sli[i] == "(low)" || sli[i] == "(up)" || sli[i] == "(cap)" {
 			count++
+		} else if sli[i] == "(low," || sli[i] == "(up," || sli[i] == "(cap," {
+			count += 2
 		}
 	}
 	for i := 1; i < len(sli); i++ {
 		for j := i; j < len(sli)-1; j++ {
 			if sli[j] == "(hex)" || sli[j] == "(bin)" || sli[j] == "(low)" || sli[j] == "(up)" || sli[j] == "(cap)" {
-				sli[j] = sli[j+1]
+				sli[j] = ""
 			} else if sli[j] == "(low," || sli[j] == "(up," || sli[j] == "(cap," {
-				sli[j] = sli[j+1]
+				sli[j] = ""
+				sli[j+1] = ""
 			} else if sli[j] == sli[j-1] {
-				sli[j] = sli[j+1]
+				sli[j] = ""
 			}
 		}
 	}
-
-	for i := 0; i < len(sli)-count; i++ {
-		if i < len(sli) {
-			fmt.Print(sli[i], " ")
+	sli = SplitWhiteSpaces(sli)
+	for i := 0; i < len(sli); i++ {
+		final_product = append(final_product, sli[i], " ")
+	}
+	
+	for i := 0; i < len(final_product); i++ {
+		if i < len(final_product) {
+			fmt.Print(final_product[i])
 		} else {
-			fmt.Print(sli[i])
+			fmt.Print(final_product[i])
 		}
 	}
 	fmt.Println()
+}
+
+func SplitWhiteSpaces(s []string) []string {
+	var sli []string
+	word := ""
+	for _, str := range s {
+		for _, char := range str {
+			if char != ' ' {
+				word = word + string(char)
+			} else {
+				sli = append(sli, word)
+				word = ""
+				continue
+			}
+		}
+		if word != "" {
+			sli = append(sli, word)
+			word = ""
+		}
+	}
+	return sli
 }
 
 func ConvertBase(s string, l int) string {
@@ -139,7 +161,14 @@ func Capitalize(s string) string {
 func ToUpperNum(sli []string, n int) []string {
 	temp_slice := []string(sli)
 	count := 0
-	for i := len(sli) - 3; i > 0; i-- {
+	j := 0
+	for i := 0; i < len(sli); i++ {
+		if sli[i] == "(up," {
+			j = i
+		}
+
+	}
+	for i := j - 1; i > 0; i-- {
 		if count < n {
 			modify := ToUpper(sli[i])
 			temp_slice[i] = modify
@@ -148,9 +177,52 @@ func ToUpperNum(sli []string, n int) []string {
 			break
 		}
 	}
-	// fmt.Println(temp_slice)
 	return temp_slice
 
+}
+
+func ToLowrNum(sli []string, n int) []string {
+	temp_slice := []string(sli)
+	count := 0
+	j := 0
+	for i := 0; i < len(sli); i++ {
+		if sli[i] == "(low," {
+			j = i
+		}
+
+	}
+	for i := j - 1; i > 0; i-- {
+		if count < n {
+			modify := ToLower(sli[i])
+			temp_slice[i] = modify
+			count++
+		} else {
+			break
+		}
+	}
+	return temp_slice
+
+}
+
+func CapNum(sli []string, n int) []string {
+	temp_slice := []string(sli)
+	count := 0
+	j := 0
+	for i := 0; i < len(sli); i++ {
+		if sli[i] == "(cap," {
+			j = i
+		}
+	}
+	for i := j - 1; i > 0; i-- {
+		if count < n {
+			modify := Capitalize(sli[i])
+			temp_slice[i] = modify
+			count++
+		} else {
+			break
+		}
+	}
+	return temp_slice
 }
 
 func TrimAtoi(s string) int {

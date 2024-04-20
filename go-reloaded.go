@@ -60,7 +60,6 @@ func main() {
 
 	//Add whitSpaces
 	sli = addWhithSpaces(sli)
-
 	//search for the space and hande the ponctuel
 	for i := 0; i < len(sli); i++ {
 		if sli[i] == " " {
@@ -162,7 +161,7 @@ func splitWhitSpacesOfStrings(s string) []string {
 func addWhithSpaces(sli []string) []string {
 	var Product []string
 	for i := 0; i < len(sli); i++ {
-		if i < len(sli)-1 {
+		if i < len(sli) {
 			Product = append(Product, sli[i], " ")
 		} else {
 			Product = append(Product, sli[i])

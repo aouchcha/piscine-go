@@ -8,10 +8,11 @@ import (
 )
 
 func main() {
+
 	args := os.Args[1:]
 	var sli []string
-	var final_product []string
-	sli = SplitWhiteSpaces(args)
+
+	sli = splitWhitSpacesInSliceOfStrings(args)
 	for i := 1; i < len(sli); i++ {
 		if sli[i] == "(hex)" {
 			new := ConvertBase(sli[i-1], 16)
@@ -29,12 +30,10 @@ func main() {
 			new := Capitalize(sli[i-1])
 			sli[i-1] = new
 		} else if sli[i] == "(up," {
-
 			new := sli[i+1]
 			num := TrimAtoi(new)
 			sli = ToUpperNum(sli, num)
 		} else if sli[i] == "(low," {
-
 			new := sli[i+1]
 			num := TrimAtoi(new)
 			sli = ToLowrNum(sli, num)
@@ -44,15 +43,8 @@ func main() {
 			sli = CapNum(sli, num)
 		}
 	}
-	count := 0
-	for i := 1; i < len(sli); i++ {
-		if sli[i] == "(hex)" || sli[i] == "(bin)" || sli[i] == "(low)" || sli[i] == "(up)" || sli[i] == "(cap)" {
-			count++
-		} else if sli[i] == "(low," || sli[i] == "(up," || sli[i] == "(cap," {
-			count += 2
-		}
-	}
-	for i := 1; i < len(sli); i++ {
+
+	for i := 1; i < len(sli)-1; i++ {
 		for j := i; j < len(sli)-1; j++ {
 			if sli[j] == "(hex)" || sli[j] == "(bin)" || sli[j] == "(low)" || sli[j] == "(up)" || sli[j] == "(cap)" {
 				sli[j] = ""
@@ -64,22 +56,68 @@ func main() {
 			}
 		}
 	}
-	sli = SplitWhiteSpaces(sli)
+	sli = splitWhitSpacesInSliceOfStrings(sli)
+
+	//Add whitSpaces
+	sli = addWhithSpaces(sli)
+
+	//search for the space and hande the ponctuel
 	for i := 0; i < len(sli); i++ {
-		final_product = append(final_product, sli[i], " ")
-	}
-	
-	for i := 0; i < len(final_product); i++ {
-		if i < len(final_product) {
-			fmt.Print(final_product[i])
-		} else {
-			fmt.Print(final_product[i])
+		if sli[i] == " " {
+			sli = handelPonctuel(sli, i)
 		}
 	}
-	fmt.Println()
+
+	sli = Handl_Voyel(sli)
+
+	var final_result string
+	final_result = joinSliceOfStrings(sli)
+
+	// handel the case when the "," is in the middel of the word
+	final_test := []rune(final_result)
+	var slice []rune
+	for i := 0; i < len(final_test)-1; i++ {
+		if (final_test[i] == '.' || final_test[i] == ',' || final_test[i] == '!' || final_test[i] == '?' || final_test[i] == ':' || final_test[i] == ';') && (final_test[i+1] != '.' && final_test[i+1] != ',' && final_test[i+1] != '!' && final_test[i+1] != '?' && final_test[i+1] != ':' && final_test[i+1] != ';' && final_test[i] != ' ') {
+			slice = append(slice, final_test[i], ' ')
+		} else {
+			slice = append(slice, final_test[i])
+		}
+	}
+
+	//add the last elemt of the string
+	if final_test[len(final_test)-1] == '.' || final_test[len(final_test)-1] == ',' || final_test[len(final_test)-1] == '!' || final_test[len(final_test)-1] == '?' || final_test[len(final_test)-1] == ':' || final_test[len(final_test)-1] == ';' || final_test[len(final_test)-1] == '\'' {
+		slice = append(slice, final_test[len(final_test)-1])
+	}
+
+	//transform slice of runes into string
+	final_result = joinSliceOfrunes(slice)
+
+	sli = splitWhitSpacesOfStrings(final_result)
+	sli = splitWhitSpacesInSliceOfStrings(sli)
+
+	sli = Handl_singlequotes(sli)
+
+	//transform slice of strings into slice
+	final_result = joinSliceOfStrings(sli)
+
+	//handl the case when we have the "'" in the first element
+	slice = []rune{}
+	for i := 0; i < len(final_result); i++ {
+		if final_result[i] == '\'' && final_result[i-1] == ':' {
+			slice = append(slice, ' ', rune(final_result[i]))
+		} else {
+			slice = append(slice, rune(final_result[i]))
+		}
+	}
+
+	//transform slice of runes into string
+	final_result = joinSliceOfrunes(slice)
+
+	fmt.Println(final_result)
+
 }
 
-func SplitWhiteSpaces(s []string) []string {
+func splitWhitSpacesInSliceOfStrings(s []string) []string {
 	var sli []string
 	word := ""
 	for _, str := range s {
@@ -100,10 +138,59 @@ func SplitWhiteSpaces(s []string) []string {
 	return sli
 }
 
+func splitWhitSpacesOfStrings(s string) []string {
+	var sli []string
+	word := ""
+
+	for _, char := range s {
+		if char != ' ' {
+			word = word + string(char)
+		} else {
+			sli = append(sli, word)
+			word = ""
+			continue
+		}
+	}
+	if word != "" {
+		sli = append(sli, word)
+		word = ""
+	}
+
+	return sli
+}
+
+func addWhithSpaces(sli []string) []string {
+	var Product []string
+	for i := 0; i < len(sli); i++ {
+		if i < len(sli)-1 {
+			Product = append(Product, sli[i], " ")
+		} else {
+			Product = append(Product, sli[i])
+		}
+	}
+	return Product
+}
+
+func joinSliceOfStrings(sli []string) string {
+	word := ""
+	for _, str := range sli {
+		word = word + string(str)
+	}
+	return word
+}
+
+func joinSliceOfrunes(sli []rune) string {
+	word := ""
+	for _, str := range sli {
+		word = word + string(str)
+	}
+	return word
+}
+
 func ConvertBase(s string, l int) string {
 	var base string
 	if l == 16 {
-		base = "0123456789ABCDEF"
+		base = "0123456789abcdef"
 	} else {
 		base = "01"
 	}
@@ -168,7 +255,7 @@ func ToUpperNum(sli []string, n int) []string {
 		}
 
 	}
-	for i := j - 1; i > 0; i-- {
+	for i := j - 1; i >= 0; i-- {
 		if count < n {
 			modify := ToUpper(sli[i])
 			temp_slice[i] = modify
@@ -191,7 +278,7 @@ func ToLowrNum(sli []string, n int) []string {
 		}
 
 	}
-	for i := j - 1; i > 0; i-- {
+	for i := j - 1; i >= 0; i-- {
 		if count < n {
 			modify := ToLower(sli[i])
 			temp_slice[i] = modify
@@ -213,7 +300,7 @@ func CapNum(sli []string, n int) []string {
 			j = i
 		}
 	}
-	for i := j - 1; i > 0; i-- {
+	for i := j - 1; i >= 0; i-- {
 		if count < n {
 			modify := Capitalize(sli[i])
 			temp_slice[i] = modify
@@ -241,6 +328,47 @@ func TrimAtoi(s string) int {
 	for _, val := range word {
 		result = result*10 + int(val-'0')
 	}
-
 	return result * signe
+}
+
+func handelPonctuel(sli []string, nbr int) []string {
+	for i := 0; i < len(sli)-1; i++ {
+		if i == nbr {
+			for _, char := range sli[i+1] {
+				if char == '.' || char == ',' || char == '!' || char == '?' || char == ':' || char == ';' {
+					sli[i] = ""
+				} else if char != '.' && char != ',' && char != '!' && char != '?' && char != ':' && char != ';' {
+					break
+				}
+			}
+		}
+	}
+	return sli
+}
+
+func Handl_singlequotes(finish []string) []string {
+	Product := []string{}
+	for i := 0; i < len(finish)-1; i++ {
+		if finish[i] == "'" || finish[i+1] == "'" {
+			Product = append(Product, finish[i])
+		} else {
+			Product = append(Product, finish[i], " ")
+		}
+	}
+	Product = append(Product, finish[len(finish)-1])
+	return Product
+}
+func Handl_Voyel(sli []string) []string {
+	for i := 0; i < len(sli); i++ {
+		if sli[i] == "a" {
+			for j, char := range sli[i+2] {
+				if char == 'a' || char == 'e' || char == 'u' || char == 'o' || char == 'i' && j == 0 {
+					sli[i] = "an"
+				} else {
+					break
+				}
+			}
+		}
+	}
+	return sli
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -9,63 +10,68 @@ import (
 
 func main() {
 
-	args := os.Args[1:]
-	var sli []string
+	file := os.Args[1]
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	str := string(data)
+	sli := strings.Split(str, " ")
 
-	sli = splitWhitSpacesInSliceOfStrings(args)
 	for i := 1; i < len(sli); i++ {
 		if sli[i] == "(hex)" {
 			new := ConvertBase(sli[i-1], 16)
 			sli[i-1] = new
+			sli[i] = ""
+
 		} else if sli[i] == "(bin)" {
 			new := ConvertBase(sli[i-1], 2)
 			sli[i-1] = new
+			sli[i] = ""
+
 		} else if sli[i] == "(up)" {
 			new := ToUpper(sli[i-1])
 			sli[i-1] = new
+			sli[i] = ""
+
 		} else if sli[i] == "(low)" {
 			new := ToLower(sli[i-1])
 			sli[i-1] = new
+			sli[i] = ""
 		} else if sli[i] == "(cap)" {
 			new := Capitalize(sli[i-1])
 			sli[i-1] = new
+			sli[i] = ""
 		} else if sli[i] == "(up," {
 			new := sli[i+1]
 			num := TrimAtoi(new)
 			sli = ToUpperNum(sli, num)
+			sli[i] = ""
+			sli[i+1] = ""
 		} else if sli[i] == "(low," {
 			new := sli[i+1]
 			num := TrimAtoi(new)
 			sli = ToLowrNum(sli, num)
+			sli[i] = ""
+			sli[i+1] = ""
 		} else if sli[i] == "(cap," {
 			new := sli[i+1]
 			num := TrimAtoi(new)
 			sli = CapNum(sli, num)
+			sli[i] = ""
+			sli[i+1] = ""
 		}
 	}
-
-	for i := 1; i < len(sli)-1; i++ {
-		for j := i; j < len(sli)-1; j++ {
-			if sli[j] == "(hex)" || sli[j] == "(bin)" || sli[j] == "(low)" || sli[j] == "(up)" || sli[j] == "(cap)" {
-				sli[j] = ""
-			} else if sli[j] == "(low," || sli[j] == "(up," || sli[j] == "(cap," {
-				sli[j] = ""
-				sli[j+1] = ""
-			} else if sli[j] == sli[j-1] {
-				sli[j] = ""
-			}
-		}
-	}
+	//fmt.Println(sli)
 	sli = splitWhitSpacesInSliceOfStrings(sli)
 
 	//Add whitSpaces
 	sli = addWhithSpaces(sli)
-	//search for the space and hande the ponctuel
-	for i := 0; i < len(sli); i++ {
-		if sli[i] == " " {
-			sli = handelPonctuel(sli, i)
-		}
-	}
+
+	
+	sli = handelPonctuel(sli)
+		
 
 	sli = Handl_Voyel(sli)
 
@@ -83,17 +89,12 @@ func main() {
 		}
 	}
 
-	//add the last elemt of the string
-	if final_test[len(final_test)-1] == '.' || final_test[len(final_test)-1] == ',' || final_test[len(final_test)-1] == '!' || final_test[len(final_test)-1] == '?' || final_test[len(final_test)-1] == ':' || final_test[len(final_test)-1] == ';' || final_test[len(final_test)-1] == '\'' {
-		slice = append(slice, final_test[len(final_test)-1])
-	}
-
 	//transform slice of runes into string
-	final_result = joinSliceOfrunes(slice)
+	final_result = string(slice)
 
 	sli = splitWhitSpacesOfStrings(final_result)
 	sli = splitWhitSpacesInSliceOfStrings(sli)
-
+	//fmt.Println(sli)
 	sli = Handl_singlequotes(sli)
 
 	//transform slice of strings into slice
@@ -110,7 +111,7 @@ func main() {
 	}
 
 	//transform slice of runes into string
-	final_result = joinSliceOfrunes(slice)
+	final_result = string(slice)
 
 	fmt.Println(final_result)
 
@@ -171,14 +172,6 @@ func addWhithSpaces(sli []string) []string {
 }
 
 func joinSliceOfStrings(sli []string) string {
-	word := ""
-	for _, str := range sli {
-		word = word + string(str)
-	}
-	return word
-}
-
-func joinSliceOfrunes(sli []rune) string {
 	word := ""
 	for _, str := range sli {
 		word = word + string(str)
@@ -330,9 +323,9 @@ func TrimAtoi(s string) int {
 	return result * signe
 }
 
-func handelPonctuel(sli []string, nbr int) []string {
+func handelPonctuel(sli []string) []string {
 	for i := 0; i < len(sli)-1; i++ {
-		if i == nbr {
+		if sli[i] == " " {
 			for _, char := range sli[i+1] {
 				if char == '.' || char == ',' || char == '!' || char == '?' || char == ':' || char == ';' {
 					sli[i] = ""
@@ -347,22 +340,32 @@ func handelPonctuel(sli []string, nbr int) []string {
 
 func Handl_singlequotes(finish []string) []string {
 	Product := []string{}
-	for i := 0; i < len(finish)-1; i++ {
-		if finish[i] == "'" || finish[i+1] == "'" {
+	for i := 1; i < len(finish); i++ {
+		if finish[i] == "'" || finish[i-1] == "'" {
 			Product = append(Product, finish[i])
 		} else {
 			Product = append(Product, finish[i], " ")
 		}
 	}
-	Product = append(Product, finish[len(finish)-1])
+	//Product = append(Product, finish[len(finish)-1])
 	return Product
 }
 func Handl_Voyel(sli []string) []string {
-	for i := 0; i < len(sli); i++ {
+	for i := 0; i < len(sli)-2; i++ {
 		if sli[i] == "a" {
 			for j, char := range sli[i+2] {
-				if char == 'a' || char == 'e' || char == 'u' || char == 'o' || char == 'i' && j == 0 {
+				if char == 'a' || char == 'e' || char == 'u' || char == 'o' || char == 'i' || char == 'A' || char == 'E' || char == 'U' || char == 'O' || char == 'I' && j == 0 {
 					sli[i] = "an"
+				} else {
+					break
+				}
+			}
+		}
+
+		if sli[i] == "A" {
+			for j, char := range sli[i+2] {
+				if char == 'a' || char == 'e' || char == 'u' || char == 'o' || char == 'i' || char == 'A' || char == 'E' || char == 'U' || char == 'O' || char == 'I' && j == 0 {
+					sli[i] = "AN"
 				} else {
 					break
 				}

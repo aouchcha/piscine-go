@@ -10,167 +10,321 @@ import (
 
 func main() {
 
-	if len(os.Args) < 2 {
-		fmt.Println("There is an error in the commande line .")
+	if len(os.Args) != 3 {
+		fmt.Println("You didn't enter the two important argumments in the terminal")
 		return
 	}
 
-	InputFile := os.Args[1]
-
-	data, err := ioutil.ReadFile(InputFile)
+	InputFile, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error !!")
 		return
 	}
-	str := string(data)
-	sli := strings.Split(str, "\n")
-	str = joinSliceOfStrings(sli)
-	sli = strings.Split(str, " ")
 
-
-	for i := 1; i < len(sli); i++ {
-		if sli[0] == "(hex)" || sli[0] == "(bin)" || sli[0] == "(cap)" || sli[0] == "(low)" || sli[0] == "(up)" || sli[0] == "(cap," || sli[0] == "(low," || sli[0] == "(up," {
-			sli[0] = ""
-		} else if sli[i] == "(hex)" {
-			temp, _ := strconv.ParseInt(sli[i-1], 16, 32)
-			sli[i-1] = strconv.Itoa(int(temp))
-			sli[i] = ""
-		} else if sli[i] == "(bin)" {
-			temp, _ := strconv.ParseInt(sli[i-1], 2, 32)
-			sli[i-1] = strconv.Itoa(int(temp))
-			sli[i] = ""
-		} else if sli[i] == "(up)" {
-			sli[i-1] = strings.ToUpper(sli[i-1])
-			sli[i] = ""
-		} else if sli[i] == "(low)" {
-			sli[i-1] = strings.ToLower(sli[i-1])
-			sli[i] = ""
-		} else if sli[i] == "(cap)" {
-			sli[i-1] = Capitalize(sli[i-1])
-			sli[i] = ""
-		} else if sli[i] == "(cap," || sli[i] == "(low," || sli[i] == "(up," {
-			sli = numericalChanges(sli, i)
-		}
-	}
-	sli = splitWhitSpacesInSliceOfStrings(sli)
-
-	//Add whitSpaces
-	sli = addWhithSpaces(sli)
-	sli = handelPonctuel(sli)
-	sli = Handl_Voyel(sli)
-
-	// handel the case when the "," is in the middel of the word
-	var final_result string
-	final_result = joinSliceOfStrings(sli)
-	final_test := []rune(final_result)
-	var slice []rune
-	for i := 0; i < len(final_test)-1; i++ {
-		if (final_test[i] == '.' || final_test[i] == ',' || final_test[i] == '!' || final_test[i] == '?' || final_test[i] == ':' || final_test[i] == ';') /*&& (final_test[i+1] != '.' && final_test[i+1] != ',' && final_test[i+1] != '!' && final_test[i+1] != '?' && final_test[i+1] != ':' && final_test[i+1] != ';' && final_test[i] != ' ') */{
-			slice = append(slice, final_test[i], ' ')
-		} else {
-			slice = append(slice, final_test[i])
-		}
+	file := string(InputFile)
+	slice := strings.Fields(file)
+	slice = AddWhiteSpaces(slice)
+	slice = HandlVowels(slice)
+	file = ConvertSliceintoString(slice)
+	slice = strings.Fields(file)
+	if slice[0] == "(hex)" || slice[0] == "(bin)" || slice[0] == "(up)" || slice[0] == "(cap)" || slice[0] == "(low)" {
+		fmt.Println()
+		fmt.Println("You give the program a commade to make a change in the first element check it")
+		fmt.Println()
+		return
+	} else if slice[0] == "(up," || slice[0] == "(low," || slice[0] == "(cap," {
+		fmt.Println()
+		fmt.Println("You give the program a commande to make a numerical change in the first element check it")
+		fmt.Println()
+		return
 	}
 
-	//transform slice of runes into string
-	final_result = string(slice)
-	sli = strings.Split(final_result, " ")
-	sli = splitWhitSpacesInSliceOfStrings(sli)
+	slice = DealWithMarkers(slice)
 
-	//slice = []rune{}
-	count := 0
-	slice = Handl_singlequotes(sli, &count)
+	slice = DeletEmptyCellules(slice)
 
-	// //transform slice of runes into string
-	final_result = string(slice)
-	fmt.Println(final_result)
+	slice = AddWhiteSpaces(slice)
 
-	//transform slice of runes into string
-	final_result = ""
-	for i := 0; i < len(slice)-count; i++ {
-		final_result = final_result + string(slice[i])
-	}
+	slice = HandlPonctuation(slice)
 
-	ResultFile := os.Args[2]
-	Final := []byte(final_result)
-	err = ioutil.WriteFile(ResultFile, Final, 0644)
+	file = HandlSingleQuotes(slice)
+
+	file = strings.Trim(file, " ")
+
+	OutputFile := os.Args[2]
+	FinalResult := []byte(file)
+	err = ioutil.WriteFile(OutputFile, FinalResult, 0644)
 	if err != nil {
-		fmt.Printf("Error writing output file: %v\n", err)
-		return
+		fmt.Println("Error: ", err)
 	}
-
+	fmt.Println("Go check the result file the progrqmme worked secssefuly !!!")
 }
 
-func splitWhitSpacesInSliceOfStrings(s []string) []string {
-	var sli []string
-	word := ""
-	for _, str := range s {
-		for _, char := range str {
-			if char != ' ' {
-				word = word + string(char)
+func DealWithMarkers(slice []string) []string {
+
+	for i := 1; i < len(slice); i++ {
+		if slice[i] == "(bin)" || slice[i] == "(hex)" {
+			if IsBinaireOrHexa(slice[i], slice[i-1]) {
+				if slice[i] == "(bin)" {
+					num, _ := (strconv.ParseInt(slice[i-1], 2, 64))
+					slice[i-1] = strconv.Itoa(int(num))
+					slice[i] = ""
+				} else if slice[i] == "(hex)" {
+					num, _ := (strconv.ParseInt(slice[i-1], 16, 64))
+					slice[i-1] = strconv.Itoa(int(num))
+					slice[i] = ""
+				}
 			} else {
-				sli = append(sli, word," ")
-				word = ""
+				fmt.Println()
+				fmt.Println("The number that you want to transforme isn't binaire or not hex please check again !!!")
+
+				fmt.Println("Check the result  it will show you the message thet you entered and modify it !!!!!!!!")
+				fmt.Println()
+				break
+			}
+		} else if slice[i] == "(up)" {
+			if IsItValideWord(slice[i], slice[i-1]) {
+				slice[i-1] = strings.ToUpper(slice[i-1])
+				slice[i] = ""
+			} else {
+				fmt.Println()
+				fmt.Println("The word that you want to upper contain a number")
+
+				fmt.Println("Check the result  it will show you the message thet you entered and modify it !!!!!!!!")
+				fmt.Println()
+				break
+			}
+		} else if slice[i] == "(low)" {
+			if IsItValideWord(slice[i], slice[i-1]) {
+				slice[i-1] = strings.ToLower(slice[i-1])
+				slice[i] = ""
+			} else {
+				fmt.Println()
+				fmt.Println("The word that you want to lower contain a number")
+
+				fmt.Println("Check the result  it will show you the message thet you entered and modify it !!!!!!!!")
+				fmt.Println()
+				break
+			}
+		} else if slice[i] == "(cap)" {
+			slice[i-1] = strings.ToLower(slice[i-1])
+			if IsItValideWord(slice[i], slice[i-1]) {
+				slice[i-1] = Capitalize(slice[i-1])
+				slice[i] = ""
+			} else {
+				fmt.Println()
+				fmt.Println("The word that you want to capitalize start with somting insteqd of letter")
+
+				fmt.Println("Check the result  it will show you the message thet you entered and modify it !!!!!!!!")
+				fmt.Println()
+				break
+			}
+		} else if slice[i] == "(up," || slice[i] == "(cap," || slice[i] == "(low," {
+			if IsItPossible(slice, slice[i], i) {
+				num := TrimAtoi(slice[i+1])
+				if slice[i] == "(up," {
+
+					for j := 0; j < num; j++ {
+
+						if slice[i-j-1] != "" {
+							slice[i-j-1] = strings.ToUpper(slice[i-j-1])
+						}
+					}
+				} else if slice[i] == "(low," {
+					for j := 0; j < num; j++ {
+						if slice[i-j-1] != "" {
+							slice[i-j-1] = strings.ToLower(slice[i-j-1])
+						}
+					}
+				} else if slice[i] == "(cap," {
+					for j := 0; j < num; j++ {
+						if slice[i-j-1] != "" {
+							slice[i-j-1] = Capitalize(slice[i-j-1])
+						}
+
+					}
+				}
+
+				slice[i] = ""
+				slice[i+1] = ""
+
+			} else {
+				fmt.Println()
+				fmt.Println("We can't make the changes because either the number of words you wanna to change is greater than what we have or you didn't enter a number .")
+
+				fmt.Println("Check the result  it will show you the message thet you entered and modify it !!!!!!!!")
+				fmt.Println()
+				break
 			}
 		}
-		if word != "" {
-			sli = append(sli, word)
-			word = ""
-		}
 	}
-	return sli
+	return slice
+
 }
 
-func addWhithSpaces(sli []string) []string {
-	var Product []string
-	for i := 0; i < len(sli); i++ {
-		if i < len(sli) {
-			Product = append(Product, sli[i], " ")
+func HandlSingleQuotes(slice []string) string {
+	var temp []string
+	var slirune []rune
+	for _, str := range slice {
+		for _, char := range str {
+			if char == '\'' {
+				slirune = append(slirune, ' ', char, ' ')
+			} else {
+				slirune = append(slirune, char)
+			}
+		}
+	}
+	word := string(slirune)
+	slice = strings.Fields(word)
+	for i := 0; i < len(slice)-1; i++ {
+		if slice[i][len(slice[i])-1] == ':' {
+			temp = append(temp, slice[i], " ")
+		} else if slice[i+1] == "'" || slice[i] == "'" {
+			temp = append(temp, slice[i])
 		} else {
-			Product = append(Product, sli[i])
+			temp = append(temp, slice[i], " ")
 		}
 	}
-	return Product
-}
-
-func joinSliceOfStrings(sli []string) string {
-	word := ""
-	for _, str := range sli {
-		word = word + string(str)
+	if slice[len(slice)-1] == "'" {
+		temp = append(temp, slice[len(slice)-1])
+	} else {
+		temp = append(temp, slice[len(slice)-1])
 	}
+	word = ConvertSliceintoString(temp)
+
 	return word
 }
 
-func Capitalize(s string) string {
+func ConvertSliceintoString(slice []string) string {
 	word := ""
-	for i, char := range s {
-		if char >= 'a' && char <= 'z' && i == 0 {
-			word = word + string(char-32)
-		} else {
+	for _, str := range slice {
+		for _, char := range str {
 			word = word + string(char)
 		}
 	}
 	return word
 }
-func numericalChanges(slice []string, nbr int) []string {
-	num := TrimAtoi(slice[nbr+1])
-	if slice[nbr] == "(up," {
-		for j := 0; j < num; j++ {
-			slice[nbr-j] = strings.ToUpper(slice[nbr-j])
-		}
-	} else if slice[nbr] == "(low," {
-		for j := 0; j < num; j++ {
-			slice[nbr-j] = strings.ToLower(slice[nbr-j])
-		}
-	} else if slice[nbr] == "(cap," {
-		for j := 0; j < num; j++ {
-			slice[nbr-j] = Capitalize(slice[nbr-j])
+
+func AddWhiteSpaces(slice []string) []string {
+	var temp []string
+	for i := range slice {
+		temp = append(temp, slice[i], " ")
+	}
+	return temp
+}
+
+func HandlPonctuation(slice []string) []string {
+
+	for i := 0; i < len(slice)-1; i++ {
+		if slice[i] == " " {
+			if IsTheWordPonctuation(slice[i+1]) {
+				for j := i; j < len(slice)-1; j++ {
+					slice[j] = slice[j+1]
+				}
+			}
 		}
 	}
-	slice[nbr] = ""
-	slice[nbr+1] = ""
+	word := ConvertSliceintoString((slice))
+
+	//Handle the case when the ponctuation is in the middle or liee with the word
+	temp := []rune(word)
+	var ToReturn []rune
+	for i := 0; i < len(temp)-1; i++ {
+		if (temp[i+1] == ',' || temp[i+1] == '.' || temp[i+1] == ';' || temp[i+1] == ':' || temp[i+1] == '!' || temp[i+1] == '?') && temp[i] == ' ' {
+			for j := i; j < len(temp)-1; j++ {
+				temp[j] = temp[j+1]
+			}
+			ToReturn = append(ToReturn, temp[i], ' ')
+		} else {
+			ToReturn = append(ToReturn, temp[i])
+		}
+	}
+	if temp[len(temp)-1] != ToReturn[len(ToReturn)-1] {
+		ToReturn = append(ToReturn, temp[len(temp)-1])
+	}
+	slice = AddWhiteSpaces(strings.Fields(string(ToReturn)))
 	return slice
 }
+
+func IsTheWordPonctuation(str string) bool {
+	for _, char := range str {
+		if char == ',' || char == '.' || char == ';' || char == ':' || char == '!' || char == '?' {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func HandlVowels(slice []string) []string {
+	for i := 0; i < len(slice)-1; i++ {
+		if slice[i+1][0] == 'a' || slice[i+1][0] == 'e' || slice[i+1][0] == 'u' || slice[i+1][0] == 'i' || slice[i+1][0] == 'o' || slice[i+1][0] == 'h' || slice[i+1][0] == 'A' || slice[i+1][0] == 'E' || slice[i+1][0] == 'U' || slice[i+1][0] == 'I' || slice[i+1][0] == 'O' || slice[i+1][0] == 'H' {
+			if slice[i] == "a" {
+				slice[i] = "an"
+			} else if slice[i] == "A" {
+				slice[i] = "AN"
+			}
+		}
+	}
+	return AddWhiteSpaces(slice)
+}
+
+func IsBinaireOrHexa(Marker, str string) bool {
+	reponse := true
+	if Marker == "(bin)" {
+		for _, char := range str {
+			if char == '0' || char == '1' {
+				reponse = true
+			} else {
+				reponse = false
+				break
+			}
+		}
+	} else if Marker == "(hex)" {
+		for _, char := range str {
+			if char < '0' || char > '9' && char < 'a' || char > 'f' {
+				reponse = false
+				break
+			}
+		}
+	}
+	return reponse
+}
+
+func DeletEmptyCellules(slice []string) []string {
+	var temp []string
+	for i := range slice {
+		if slice[i] != "" {
+			temp = append(temp, slice[i])
+		}
+	}
+	return temp
+}
+
+func IsItValideWord(Marker, str string) bool {
+	if Marker == "(up)" || Marker == "(up," || Marker == "(low)" || Marker == "(low," {
+		for _, char := range str {
+			if char >= '0' && char <= '9' {
+				return false
+			}
+		}
+	} else if Marker == "(cap)" || Marker == "(cap," {
+		if str[0] < 'a' || str[0] > 'z' {
+			return false
+		}
+	}
+	return true
+}
+
+func Capitalize(str string) string {
+	temp := []rune(str)
+	if temp[0] >= 'a' && temp[0] <= 'z' {
+		temp[0] = temp[0] - 32
+	}
+	return string(temp)
+}
+
 func TrimAtoi(s string) int {
 	word := ""
 	result := 0
@@ -187,78 +341,14 @@ func TrimAtoi(s string) int {
 	for _, val := range word {
 		result = result*10 + int(val-'0')
 	}
+
 	return result * signe
 }
 
-func handelPonctuel(sli []string) []string {
-	for i := 0; i < len(sli)-1; i++ {
-		if sli[i] == " " {
-			for _, char := range sli[i+1] {
-				if char == '.' || char == ',' || char == '!' || char == '?' || char == ':' || char == ';' {
-					sli[i] = ""
-				} else if char != '.' && char != ',' && char != '!' && char != '?' && char != ':' && char != ';' {
-					break
-				}
-			}
-		}
+func IsItPossible(slice []string, Marker string, index int) bool {
+	num := TrimAtoi(slice[index+1])
+	if num <= 0 || num > len(slice)-(len(slice)-index) {
+		return false
 	}
-	return sli
-}
-
-func Handl_singlequotes(finish []string, count *int) []rune {
-	Product := []string{}
-	Product = append(Product, finish[0])
-	for i := 1; i < len(finish); i++ {
-		if finish[i] == "'" || finish[i-1] == "'" {
-			Product = append(Product, finish[i])
-		} else {
-			Product = append(Product, " ", finish[i])
-		}
-	}
-
-	final_result := joinSliceOfStrings(Product)
-	slice := []rune{}
-	for i := 0; i < len(final_result); i++ {
-		if final_result[i] == '\'' && final_result[i-1] == ':' {
-			slice = append(slice, ' ', rune(final_result[i]))
-		} else {
-			slice = append(slice, rune(final_result[i]))
-		}
-	}
-	for i := 0; i < len(slice)-1; i++ {
-		if slice[i] == ' ' && slice[i+1] == '\'' && slice[i-1] != ':' {
-			for j := i; j < len(slice)-1; j++ {
-				slice[j] = slice[j+1]
-			}
-			*count++
-		} else {
-			continue
-		}
-	}
-
-	return slice
-}
-func Handl_Voyel(sli []string) []string {
-	for i := 0; i < len(sli)-2; i++ {
-		if sli[i] == "a" {
-			for j, char := range sli[i+2] {
-				if char == 'a' || char == 'e' || char == 'u' || char == 'o' || char == 'i' || char == 'A' || char == 'E' || char == 'U' || char == 'O' || char == 'I' && j == 0 {
-					sli[i] = "an"
-				} else {
-					break
-				}
-			}
-		}
-
-		if sli[i] == "A" {
-			for j, char := range sli[i+2] {
-				if char == 'a' || char == 'e' || char == 'u' || char == 'o' || char == 'i' || char == 'A' || char == 'E' || char == 'U' || char == 'O' || char == 'I' && j == 0 {
-					sli[i] = "AN"
-				} else {
-					break
-				}
-			}
-		}
-	}
-	return sli
+	return true
 }
